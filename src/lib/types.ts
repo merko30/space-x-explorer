@@ -96,3 +96,19 @@ export type SpaceXLaunchResponse = {
   docs: SpaceXLaunch[];
   totalDocs?: number;
 };
+
+export type SpaceXRocket = {
+  id: string;
+  name: string;
+  type?: string | null;
+  flickr_images?: string[] | null;
+  description?: string | null;
+};
+
+export type SpaceXLaunchpad = {
+  id: string;
+  name: string;
+  locality?: string | null;
+  region?: string | null;
+  details?: string | null;
+};

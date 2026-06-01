@@ -71,7 +71,34 @@ export async function fetchLaunchById(
       revalidate: 60,
     });
     return json;
-    // todo: fix
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.startsWith("404")) return null;
+    throw err;
+  }
+}
+
+export async function fetchRocketById(
+  id: string,
+): Promise<SpaceXRocket | null> {
+  try {
+    const json = await fetcher.get<SpaceXRocket>(`/rockets/${id}`, {
+      revalidate: 60,
+    });
+    return json;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.startsWith("404")) return null;
+    throw err;
+  }
+}
+
+export async function fetchLaunchpadById(
+  id: string,
+): Promise<SpaceXLaunchpad | null> {
+  try {
+    const json = await fetcher.get<SpaceXLaunchpad>(`/launchpads/${id}`, {
+      revalidate: 60,
+    });
+    return json;
   } catch (err: unknown) {
     if (err instanceof Error && err.message.startsWith("404")) return null;
     throw err;

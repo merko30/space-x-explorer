@@ -5,15 +5,15 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "**.staticflickr.com",
+      },
+      {
+        protocol: "https",
         hostname: "live.staticflickr.com",
       },
       {
         protocol: "https",
         hostname: "images2.imgbox.com",
-      },
-      {
-        protocol: "https",
-        hostname: "farm8.staticflickr.com",
       },
     ],
   },

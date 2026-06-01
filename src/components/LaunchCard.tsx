@@ -30,7 +30,7 @@ export default function LaunchCard({ launch }: LaunchCardProps) {
       : launch.success === false
         ? "fail"
         : "unknown";
-  const imageSrc = launch.image || "/rocket-placeholder.jpg";
+  const imageSrc = launch.image || "/rocket.png";
 
   console.log(launch);
 
@@ -60,14 +60,8 @@ export default function LaunchCard({ launch }: LaunchCardProps) {
       <div className="absolute inset-0 bg-linear-to-br from-sky-500/10 via-violet-500/5 to-cyan-300/5" />
       <div className="relative flex flex-col gap-4 p-5">
         <div className="flex items-start gap-4">
-          <div className="w-20 h-20 rounded-3xl bg-slate-900/80 ring-1 ring-slate-700 flex items-center justify-center overflow-hidden">
-            <Image
-              src={imageSrc}
-              alt={launch.name}
-              className="w-full h-full object-cover"
-              width={80}
-              height={80}
-            />
+          <div className="w-20 h-20 relative rounded-3xl bg-slate-900/80 ring-1 ring-slate-700 flex items-center justify-center overflow-hidden">
+            <Image src={imageSrc} alt={launch.name} fill sizes="10vw" />
           </div>
           <div className="flex-1">
             <h3
