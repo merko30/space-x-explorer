@@ -2,6 +2,7 @@
 
 import React from "react";
 import ActionButton from "./ActionButton";
+import clsx from "clsx";
 
 export default function LoadingButton(props: {
   children: React.ReactNode;
@@ -22,7 +23,7 @@ export default function LoadingButton(props: {
     <ActionButton
       onClick={onClick}
       isLoading={isLoading}
-      className={`px-4 py-2 cursor-pointer ${className}`}
+      className={clsx(`px-4 py-2 cursor-pointer`, className)}
       disabled={disabled}
     >
       {children}

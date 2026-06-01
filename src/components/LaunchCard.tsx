@@ -10,8 +10,15 @@ import {
   subscribeFavoritesChange,
 } from "@/lib/favorite";
 import ActionButton from "./ActionButton";
+import clsx from "clsx";
 
 type LaunchCardProps = { launch: Launch };
+
+const STATUS_CLASSES = {
+  success: "bg-emerald-100/90 text-emerald-900",
+  fail: "bg-rose-100/90 text-rose-900",
+  unknown: "bg-slate-700/80 text-slate-100",
+};
 
 export default function LaunchCard({ launch }: LaunchCardProps) {
   const date = new Date(launch.date_utc);
@@ -30,9 +37,8 @@ export default function LaunchCard({ launch }: LaunchCardProps) {
       : launch.success === false
         ? "fail"
         : "unknown";
+  const statusClasses = STATUS_CLASSES[statusClass];
   const imageSrc = launch.image || "/rocket.png";
-
-  console.log(launch);
 
   // initialize false to match server render; read localStorage on mount
   const [internalFav, setInternalFav] = useState<boolean>(false);
@@ -76,13 +82,10 @@ export default function LaunchCard({ launch }: LaunchCardProps) {
 
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              statusClass === "success"
-                ? "bg-emerald-100/90 text-emerald-900"
-                : statusClass === "fail"
-                  ? "bg-rose-100/90 text-rose-900"
-                  : "bg-slate-700/80 text-slate-100"
-            }`}
+            className={clsx(
+              `rounded-full px-3 py-1 text-xs font-semibold`,
+              statusClasses,
+            )}
           >
             {launch.success === true
               ? "Success"
