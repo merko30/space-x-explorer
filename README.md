@@ -109,7 +109,7 @@ Priority items to further improve UX and reliability:
 - Rocket & launchpad fetches occur on detail page — could prefetch on hover for faster navigation.
 - Retry/backoff is basic (max 3 retries). For production, adapt to API `Retry-After` headers.
 - Add unit / e2e tests.
-- There are a few places where "any" is used for expediency (e.g. API response shapes) — could be typed more strictly with more time.
+- If I had more time I would focus more on the performance optimizations (virtualization, prefetching).
 
 ---
 
