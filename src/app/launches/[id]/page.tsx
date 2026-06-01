@@ -57,6 +57,15 @@ export default async function LaunchDetailPage({ params }: Props) {
 
   const flickr = launch.links?.flickr?.original || [];
 
+  const videoLink = launch.links?.webcast;
+  const articleLink = launch.links?.article;
+  const wikipediaLink = launch.links?.wikipedia;
+
+  const links = [
+    { label: "Watch", url: videoLink },
+    { label: "Article", url: articleLink },
+    { label: "Wikipedia", url: wikipediaLink },
+  ].filter((link) => link.url) as Array<{ label: string; url: string }>;
   return (
     <div className="space-y-8">
       <header className="rounded-3xl bg-slate-950 px-6 py-6 text-white shadow-xl shadow-slate-950/20">
@@ -126,36 +135,22 @@ export default async function LaunchDetailPage({ params }: Props) {
           <div className="rounded-3xl bg-slate-950 p-5 text-slate-200 shadow-xl shadow-slate-950/20">
             <h2 className="text-xl font-semibold">Links</h2>
             <div className="mt-4 flex flex-wrap gap-3">
-              {launch.links?.webcast ? (
+              {links.map((link) => (
                 <a
-                  href={launch.links.webcast}
+                  key={link.label}
+                  href={link.url}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center justify-center rounded-2xl bg-slate-800 px-4 py-2 text-sm text-white transition hover:bg-slate-700"
                 >
-                  Watch
+                  {link.label}
                 </a>
-              ) : null}
-              {launch.links?.article ? (
-                <a
-                  href={launch.links.article}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2 text-sm text-slate-200 transition hover:border-slate-700 hover:bg-slate-800"
-                >
-                  Article
-                </a>
-              ) : null}
-              {launch.links?.wikipedia ? (
-                <a
-                  href={launch.links.wikipedia}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2 text-sm text-slate-200 transition hover:border-slate-700 hover:bg-slate-800"
-                >
-                  Wikipedia
-                </a>
-              ) : null}
+              ))}
+              {links.length === 0 && (
+                <p className="text-sm text-slate-400">
+                  No links available for this launch.
+                </p>
+              )}
             </div>
           </div>
         </div>
