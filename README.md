@@ -1,56 +1,130 @@
-# SpaceX Explorer (frontend scaffold)
+# SpaceX Explorer — Frontend
 
-This repository contains an initial Next.js + TypeScript App Router scaffold for the SpaceX Explorer frontend.
+A Next.js (App Router) frontend for exploring SpaceX launches. Focused on clean UI, client caching, accessible filters, and pragmatic performance.
 
-Run locally:
+---
 
-```bash
-cd spacex-explorer-frontend
-npm install
-npm run dev
-```
+## How to run
 
-Scaffolded routes:
+Requires Node.js (16+/18+ recommended) on macOS.
 
-- `/` - Home
-- `/launches` - Launches list (placeholder)
-- `/launches/[id]` - Launch detail (placeholder)
-- `/favorites` - Favorites (placeholder)
+- Install
+  - npm: `npm install`
+  - pnpm: `pnpm install`
+  - yarn: `yarn install`
 
-Next steps: wire `src/lib/api.ts` into the launches page, add React Query, pagination, and favorites persistence.
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+- Dev
+  - `npm run dev` (or `pnpm dev` / `yarn dev`)
+  - Open: http://localhost:3000
 
-## Getting Started
+- Build / Production
+  - `npm run build`
+  - `npm run start`
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Architecture decisions
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Router: App Router (Next.js App) — chosen for server components, streaming and layout composition.
+- Data layer: React Query (tanstack/react-query)
+  - Provides caching, dedupe, background refresh, optimistic updates, infinite queries.
+  - Custom fetcher lives in `src/lib/fetcher.ts` with retry/backoff for 429/5xx.
+- Server/client split:
+  - Pages that require fast server render use server components.
+  - Interactive parts (filters, favorites, launch cards) are client components (`"use client"`).
+  - localStorage access is guarded and only read in `useEffect` to prevent hydration mismatch.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Rationale: App Router + React Query balances SSR performance and client UX (background refresh, cache hydration).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## SpaceX API usage
 
-To learn more about Next.js, take a look at the following resources:
+- Base: `https://api.spacexdata.com/v4`
+- Key endpoints:
+  - `/launches/query` — complex queries with filters and pagination (server-side search)
+  - `/launches/:id`, `/rockets/:id`, `/launchpads/:id` — detail fetches
+- Query shape (example for `/launches/query`):
+  - body contains `query` (filter object) and `options` (pagination, sort)
+  - Example fields:
+    - `name: { $regex: "falcon", $options: "i" }`
+    - `upcoming: true` or `false`
+    - `success: true` or `false`
+    - `date_utc: { $gte: "...", $lte: "..." }`
+- Pagination strategy:
+  - Server-side pagination via `page` + `limit` returned as `totalDocs` and `docs`.
+  - Client uses `useInfiniteQuery` (React Query) and "Load more" for incremental fetches.
+  - Prefetch or seed detail cache from list items to avoid duplicate fetches on navigation.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Data-layer improvements applied
 
-## Deploy on Vercel
+- Central fetcher with exponential backoff + jitter for 429/5xx/network errors.
+- React Query global defaults:
+  - `staleTime`: ~2–5 minutes
+  - `cacheTime`: ~30 minutes
+  - `refetchOnWindowFocus`: true
+  - dedupe via stable `queryKey` usage
+- Date/search debouncing and explicit date-range Apply button to reduce unnecessary queries.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## UI / Performance & Accessibility considerations
+
+Performance:
+
+- next/image used with `fill` or explicit width/height + `sizes` to avoid loading large images.
+- Skeleton cards shown during initial load.
+- Keep per-page size small (10–20) to avoid fetching too much.
+- Prefetch next page on user intent (optional).
+- Recommendation: virtualize long lists (react-window) if results may be very large.
+
+Accessibility:
+
+- Filters are keyboard-focusable; pills/selects expose `aria-pressed` / labels.
+- Buttons have `aria-label` and visible focus states.
+- Avoid reading localStorage during SSR to prevent hydration mismatches — read in `useEffect`.
+- Error and empty states provide clear messaging + keyboard-focusable retry controls.
+
+---
+
+## Tradeoffs & next steps (if more time)
+
+Priority items to further improve UX and reliability:
+
+1. Virtualize the launch list (react-window/react-virtual) — required for very large results.
+2. Offline support:
+   - Service worker caching for static assets & last known data.
+3. More tests:
+   - Unit tests for fetcher, favorites, and critical components; integration tests (Playwright).
+4. Telemetry:
+   - Track slow API endpoints and retry counts for observability.
+
+---
+
+## Known limitations / TODOs
+
+- List virtualisation is not implemented — UI may become heavy with many items. It might be too much for this demo, but would be a good next step for large datasets.
+- Rocket & launchpad fetches occur on detail page — could prefetch on hover for faster navigation.
+- Retry/backoff is basic (max 3 retries). For production, adapt to API `Retry-After` headers.
+- Add unit / e2e tests.
+
+---
+
+## Where to look in repo (high-level)
+
+- `src/components/LaunchesClient.tsx` — main list + filters + load-more
+- `src/components/LaunchFilters.tsx` — extracted filters UI
+- `src/components/LaunchCard.tsx` — card UI and favorites handling
+- `src/app/launches/[id]/page.tsx` — detail page (launch, rocket, launchpad)
+- `src/lib/fetcher.ts` — fetch wrapper + retry/backoff
+- `src/lib/api.ts` — API helpers
+- `src/lib/favorite.ts` — localStorage favorites with subscription API
+
+---
+
+If you want, I can:
+
+- Add a short CONTRIBUTING or developer quick-start with common dev commands.
+- Implement list virtualization and update README with the tradeoffs/benchmarks.
