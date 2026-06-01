@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { fetchLaunches, Launch } from "../lib/api";
@@ -35,14 +35,14 @@ export default function LaunchesClient({
     return () => window.clearTimeout(handler);
   }, [filters.searchInput]);
 
-  const applyDateRange = () => {
+  const applyDateRange = useCallback(() => {
     if (!filters.pendingStartDate || !filters.pendingEndDate) return;
     setFilters((prev) => ({
       ...prev,
       startDate: prev.pendingStartDate,
       endDate: prev.pendingEndDate,
     }));
-  };
+  }, [filters]);
 
   const query = useInfiniteQuery({
     queryKey: [
@@ -92,7 +92,20 @@ export default function LaunchesClient({
         : undefined,
   });
 
-  const launches = query.data?.pages.flatMap((page) => page.docs) || [];
+  const onChangeFilters = useCallback(
+    <K extends keyof LaunchFiltersState>(
+      field: K,
+      value: LaunchFiltersState[K],
+    ) => {
+      setFilters((prev) => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
+
+  const launches = useMemo(
+    () => query.data?.pages.flatMap((page) => page.docs) || [],
+    [query.data],
+  );
   const isLoading = query.isLoading;
   const isError = query.isError;
   const hasNextPage = Boolean(query.hasNextPage);
@@ -117,9 +130,7 @@ export default function LaunchesClient({
 
         <LaunchFilters
           filters={filters}
-          onChange={(field, value) =>
-            setFilters((prev) => ({ ...prev, [field]: value }))
-          }
+          onChange={onChangeFilters}
           onApplyDateRange={applyDateRange}
         />
       </div>

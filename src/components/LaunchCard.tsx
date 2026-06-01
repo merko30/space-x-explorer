@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Launch } from "../lib/types";
@@ -20,7 +20,7 @@ const STATUS_CLASSES = {
   unknown: "bg-slate-700/80 text-slate-100",
 };
 
-export default function LaunchCard({ launch }: LaunchCardProps) {
+function LaunchCard({ launch }: LaunchCardProps) {
   const date = new Date(launch.date_utc);
   const formattedDate = date.toLocaleString("en-US", {
     year: "numeric",
@@ -123,3 +123,5 @@ export default function LaunchCard({ launch }: LaunchCardProps) {
     </article>
   );
 }
+
+export default memo(LaunchCard);
