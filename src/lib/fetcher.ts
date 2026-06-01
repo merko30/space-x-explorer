@@ -1,21 +1,21 @@
 const BASE = "https://api.spacexdata.com/v4";
 
-type RevalidateOpt = { revalidate?: number };
+type RevalidateOpt = {
+  revalidate?: number;
+};
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 2;
 const INITIAL_BACKOFF_MS = 1000;
 
-/**
- * Calculate exponential backoff with jitter
- * retry 0: 1000ms, retry 1: 2000ms, retry 2: 4000ms, etc.
- */
-function getBackoffMs(retryCount: number): number {
-  const baseDelay = INITIAL_BACKOFF_MS * Math.pow(2, retryCount);
-  const jitter = Math.random() * 0.1 * baseDelay; // 0-10% jitter
-  return baseDelay + jitter;
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function request<T = any>(
+function getBackoffMs(retry: number) {
+  return INITIAL_BACKOFF_MS * 2 ** retry;
+}
+
+async function request<T>(
   path: string,
   init?: RequestInit,
   opts?: RevalidateOpt,
@@ -23,86 +23,83 @@ async function request<T = any>(
   const url = path.startsWith("http")
     ? path
     : `${BASE}${path.startsWith("/") ? "" : "/"}${path}`;
-  const finalInit: RequestInit = { ...init };
-  if (opts?.revalidate !== undefined)
-    (finalInit as any).next = { revalidate: opts.revalidate };
 
-  for (let retryCount = 0; retryCount <= MAX_RETRIES; retryCount++) {
+  const finalInit: RequestInit = {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  };
+
+  if (opts?.revalidate !== undefined) {
+    (
+      finalInit as RequestInit & {
+        next?: { revalidate: number };
+      }
+    ).next = {
+      revalidate: opts.revalidate,
+    };
+  }
+
+  for (let retry = 0; retry <= MAX_RETRIES; retry++) {
     try {
       const res = await fetch(url, finalInit);
 
-      // Check if we should retry
       const shouldRetry =
-        (res.status === 429 || res.status >= 500) && retryCount < MAX_RETRIES;
+        (res.status === 429 || res.status >= 500) && retry < MAX_RETRIES;
 
       if (!res.ok) {
-        const text = await res.text().catch(() => null);
-        const msg = text || res.statusText;
-
         if (shouldRetry) {
-          const backoffMs = getBackoffMs(retryCount);
-          console.warn(
-            `[API] Retry ${retryCount + 1}/${MAX_RETRIES} for ${res.status} after ${backoffMs}ms`,
-          );
-          await new Promise((resolve) => setTimeout(resolve, backoffMs));
+          await sleep(getBackoffMs(retry));
           continue;
         }
 
-        throw new Error(`${res.status} ${msg}`);
+        throw new Error(`${res.status} ${res.statusText}`);
       }
 
-      // Try parse JSON, but allow empty responses
-      const txt = await res.text();
-      if (!txt) return null as unknown as T;
-      try {
-        return JSON.parse(txt) as T;
-      } catch (e) {
-        return txt as unknown as T;
-      }
-    } catch (err) {
-      // On last retry, throw the error
-      if (retryCount === MAX_RETRIES) {
-        throw err;
+      return res.json() as Promise<T>;
+    } catch (error) {
+      // Retry only network-related fetch failures
+      if (!(error instanceof TypeError) || retry === MAX_RETRIES) {
+        throw error;
       }
 
-      // For network errors, retry with backoff
-      const backoffMs = getBackoffMs(retryCount);
-      console.warn(
-        `[API] Network error, retry ${retryCount + 1}/${MAX_RETRIES} after ${backoffMs}ms`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      await sleep(getBackoffMs(retry));
     }
   }
 
-  // Failsafe (should not reach here)
-  throw new Error("Max retries exceeded");
+  throw new Error("Request failed");
 }
 
-export async function apiGet<T = any>(
-  path: string,
-  opts?: RevalidateOpt,
-): Promise<T> {
+export function apiGet<T>(path: string, opts?: RevalidateOpt): Promise<T> {
   return request<T>(
     path,
-    { method: "GET", headers: { "Content-Type": "application/json" } },
+    {
+      method: "GET",
+    },
     opts,
   );
 }
 
-export async function apiPost<T = any>(
+export function apiPost<T>(
   path: string,
-  body?: any,
+  body?: unknown,
   opts?: RevalidateOpt,
 ): Promise<T> {
   return request<T>(
     path,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
     },
     opts,
   );
 }
 
-export default { get: apiGet, post: apiPost };
+const api = {
+  get: apiGet,
+  post: apiPost,
+};
+
+export default api;
